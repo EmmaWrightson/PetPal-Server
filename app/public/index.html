@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Page</title>
+    <link rel="stylesheet" href="/public/css/style.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e0f2ff; /* light blue background */
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+    
+        .container {
+            width: 80%;
+            max-width: 800px;
+            margin: 50px auto;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 64, 128, 0.2);
+        }
+    
+        h1, h2 {
+            color: #004080; /* deep blue headers */
+        }
+    
+        p {
+            line-height: 1.6;
+            color: #333f66; /* slate blue text */
+        }
+    
+        .responsive-img {
+            width: 50%;
+            max-width: 600px;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px rgba(0, 64, 128, 0.3);
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+    
+        .button-container {
+            margin-top: 30px;
+        }
+    
+        .button {
+            text-decoration: none;
+            background-color: #0074d9; /* vibrant blue */
+            color: white;
+            padding: 12px 25px;
+            margin: 10px;
+            border-radius: 8px;
+            display: inline-block;
+            transition: background-color 0.3s ease;
+        }
+    
+        .button:hover {
+            background-color: #005fa3; /* darker blue on hover */
+        }
+    </style>
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Welcome to PetPal!</h1>
+        <p>Our team is devoted to helping pet owners connect with their beloved creatures no matter the distance!    
+        </p>
+
+        <h2>Not Yet a Member?</h2>
+        <p>Sign up to start connecting with your pet today! 
+        </p>
+
+        <img src="public/images/dog.JPG" class="responsive-img" />
+
+
+        <div class="button-container">
+            <a href="/login" class="button">Login</a>
+            <a href="/signup" class="button">Signup</a>
+        </div>
+    </div>
+
+</body>
+</html>

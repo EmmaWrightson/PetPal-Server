@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Wardrobe</title>
+    <style>
+      
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            text-align: center;
+        }
+
+        
+        .wardrobecontainer {
+            background: white;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #333;
+        }
+
+       
+        .create-section {
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            padding: 8px;
+            width: 60%;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+ 
+        .item-list {
+            text-align: left;
+        }
+
+
+        .item-text {
+            flex: 1;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .item-list li {
+            background: #e0e0e0;
+            margin: 10px 0;
+            padding: 10px 15px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+        }
+
+        .item button {
+            margin-left: 10px;
+        }
+
+        .buttons {
+            margin-top: 20px;
+        }
+
+        .button {
+            display: inline-block;
+            background-color: #008CBA;
+            color: white;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+
+        .button:hover {
+            background-color: #0073a6;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="wardrobecontainer">
+        <h1>Wardrobe</h1>
+
+        <div class="create-section">
+            <label for="createItemName">Create Item:</label>
+            <input type="text" id="createItemName" placeholder="Enter item name">
+            <button id="createButton">Create Item</button>
+        </div>
+
+        <div class="item-list">
+            <h2>Your Wardrobe Items:</h2>
+            <ul id="itemList">
+            </ul>
+        </div>
+    </div>
+
+    <div class="buttons">
+        <a href="/dashboard" class="button">Dashboard</a>
+        <a href="/login" class="button">Home</a>
+        <a href="/profile" class="button">Profile</a>
+    </div>
+
+    <script src="/public/js/wardrobe.js"></script>
+</body>
+</html>
