@@ -17,11 +17,14 @@ import hashlib
 from datetime import datetime, timedelta
 import asyncio
 import requests
+from fastapi.middleware.cors import CORSMiddleware
 
 
 load_dotenv()
 
 SYSTEM_SALT = b"my-fixed-salt-12345"
+motor_queue = []
+
 
 #change number value for different time-out time in minutes
 SESSION_TIMEOUT = timedelta(minutes=int(os.getenv("SESSION_TIMEOUT_MINUTES", 5)))
@@ -47,6 +50,9 @@ class SignupRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+class MotorCommand(BaseModel):
+    motor: int
 
 from app.database import (
     getTables,
@@ -80,6 +86,14 @@ async def setup(app: FastAPI):
 app = FastAPI(lifespan=setup)
 static_files = StaticFiles(directory='app/public')
 app.mount('/public', static_files, name='public')
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 #Update last time user was active, store in session database
@@ -163,7 +177,6 @@ async def websocket_endpoint(websocket: WebSocket):
         return
 
 
-
 # Static file helpers
 def read_html(file_path: str) -> str:
     with open(file_path, "r") as f:
@@ -183,6 +196,21 @@ def get_error_email(email: str) -> str:
 async def get_html() -> HTMLResponse:
     with open("app/public/index.html") as html:
         return HTMLResponse(content=html.read())
+
+
+@app.post("/api/motor")
+async def send_motor_command(cmd: MotorCommand):
+    motor_queue.append(cmd.motor)
+    return {"message": f"Motor {cmd.motor} command received"}
+
+@app.websocket("/ws/motor")
+async def motor_ws(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        if motor_queue:
+            motor = motor_queue.pop(0)
+            await websocket.send_json({"motor": motor})
+        await asyncio.sleep(1) 
 
 #login page routes 
 @app.get("/login", response_class=HTMLResponse, include_in_schema=False)
