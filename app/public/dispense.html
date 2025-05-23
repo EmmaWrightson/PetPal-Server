@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Hexagon Motor Control with Labels</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin-top: 40px;
+    background: #333;
+  }
+  h1 {
+    margin-bottom: 30px;
+    color: white;
+  }
+  svg {
+    width: 320px;
+    height: 320px;
+    cursor: pointer;
+    display: block;
+    margin: auto;
+  }
+  .wedge {
+    fill: #4CAF50;
+    stroke: white;
+    stroke-width: 2px;
+    transition: fill 0.2s;
+  }
+  .wedge:hover {
+    fill: #45a049;
+  }
+  .selected {
+    fill: #2196F3 !important;
+  }
+  text {
+    pointer-events: none;
+    font-weight: bold;
+    user-select: none;
+  }
+  button.dispense {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+  }
+</style>
+</head>
+<body>
+<h1>Dispense Control</h1>
+
+<svg viewBox="0 0 300 300" id="hexSvg" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="150" cy="150" r="140" fill="#222" />
+  <circle cx="150" cy="150" r="5" fill="#333" />
+
+  <path class="wedge" data-motor="1" d="M150 150 L270 150 L210 253 Z" />
+  <path class="wedge" data-motor="2" d="M150 150 L210 253 L90 253 Z" />
+  <path class="wedge" data-motor="3" d="M150 150 L90 253 L30 150 Z" />
+  <path class="wedge" data-motor="4" d="M150 150 L30 150 L90 47 Z" />
+  <path class="wedge" data-motor="5" d="M150 150 L90 47 L210 47 Z" />
+  <path class="wedge" data-motor="6" d="M150 150 L210 47 L270 150 Z" />
+
+  <text x="210" y="180" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">Motor 1</text>
+  <text x="150" y="220" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">Motor 2</text>
+  <text x="80" y="180" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">Motor 3</text>
+  <text x="80" y="130" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">Motor 4</text>
+  <text x="150" y="80" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">Motor 5</text>
+  <text x="200" y="130" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">Motor 6</text>
+</svg>
+
+<button class="dispense" onclick="sendCommand()">Dispense</button>
+
+<script>
+  let selectedMotor = null;
+
+  document.querySelectorAll('.wedge').forEach(wedge => {
+    wedge.addEventListener('click', () => {
+      selectedMotor = +wedge.getAttribute('data-motor');
+      document.querySelectorAll('.wedge').forEach(w => w.classList.remove('selected'));
+      wedge.classList.add('selected');
+    });
+  });
+
+  function sendCommand() {
+    if (!selectedMotor) {
+      alert("Please select a motor first.");
+      return;
+    }
+
+    fetch('/api/motor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ motor: selectedMotor })
+    })
+    .then(response => response.json())
+    .then(data => {
+      alert(data.message);
+      window.location.href = "/feed";
+    })
+    .catch(err => alert("Error sending command: " + err));
+  }
+</script>
+</body>
+</html>

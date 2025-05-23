@@ -1,9 +1,10 @@
-from fastapi import FastAPI, Request, Form, Query,status, HTTPException, Body, WebSocket
+from fastapi import FastAPI, Request, Form, Query,status, HTTPException, Body, WebSocket, WebSocketDisconnect
 from fastapi.responses import Response, RedirectResponse
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles   # Used for serving static files
 import uvicorn
 import os
+import base64
 from pydantic import BaseModel, EmailStr
 import json
 from typing import Optional
@@ -24,6 +25,7 @@ load_dotenv()
 
 SYSTEM_SALT = b"my-fixed-salt-12345"
 motor_queue = []
+audio_out_queue = []
 
 
 #change number value for different time-out time in minutes
@@ -203,6 +205,12 @@ async def send_motor_command(cmd: MotorCommand):
     motor_queue.append(cmd.motor)
     return {"message": f"Motor {cmd.motor} command received"}
 
+@app.post("/api/sound")
+async def send_audio_command(audio_base64: str):
+    audio_out_queue.append(audio_base64)
+    return {"status": "queued"}
+
+
 @app.websocket("/ws/motor")
 async def motor_ws(websocket: WebSocket):
     await websocket.accept()
@@ -211,6 +219,58 @@ async def motor_ws(websocket: WebSocket):
             motor = motor_queue.pop(0)
             await websocket.send_json({"motor": motor})
         await asyncio.sleep(1) 
+
+
+@app.websocket("/ws/live")
+async def live_ws(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            msg = await websocket.recieve_text()
+            data = json.loads(msg)
+
+            if data["type"] == "video":
+                video_data = base64.b64decode(data["data"])
+                with open("frame.jpg", "wb") as f:
+                    f.write(video_data)
+
+            elif data["type"] == "audio":
+                audio_data = base64.b64decode(data["data"])
+                with open("audio_chunk.wav", "wb") as f:
+                    f.write(audio_data)
+
+            if motor_queue:
+                motor = motor_queue.pop(0)
+                await websocket.send_json({
+                    "type": "command", 
+                    "motor": motor
+                })
+
+            if audio_out_queue:
+                audio_data = audio_out_queue.pop(0)
+                await websocket.send_json({
+                    "type": "audio_out",
+                    "data": audio_data
+                })
+
+
+            await asyncio.sleep(0.01)
+
+    except WebSocketDisconnect:
+        print("Client disconnected")
+
+
+@app.get("/feed", response_class=HTMLResponse)
+async def live_page(request : Request):
+    return HTMLResponse(read_html("app/public/feed.html"))
+
+@app.get("/dispense", response_class=HTMLResponse)
+async def dispense_page(request: Request):
+    return HTMLResponse(read_html("app/public/dispense.html"))
+
+
+
+
 
 #login page routes 
 @app.get("/login", response_class=HTMLResponse, include_in_schema=False)
@@ -376,498 +436,6 @@ async def get_html(request:Request) -> HTMLResponse:
     with open("app/public/profile_devices.html") as html:
         return HTMLResponse(content=html.read())
 
-# #profile stuff
-# @app.get("/profile/devices", response_class=JSONResponse)
-# async def get_wardrobe_items(request: Request):
-#     session_result = await validate_session(request)
-#     if isinstance(session_result, RedirectResponse):
-#         return session_result
-#     user_id = session_result['user_id']
-
-#     cursor, db = connectdb()
-#     cursor, db = connectdb()
-#     cursor.execute("SELECT id, device_topic FROM user_devices WHERE user_id = %s", (user_id,))
-#     items = cursor.fetchall()
-#     db.close()
-
-#     return {"items": items}
-
-# @app.post("/profile")
-# async def register_device(request: Request, data: dict = Body(...)):
-#     # Get sessionId from cookies
-#     session_result = await validate_session(request)
-#     if isinstance(session_result, RedirectResponse):
-#         return session_result
-#     user_id = session_result['user_id']
-
-
-#     cursor, db = connectdb()
-#     try:
-#         cursor.execute(
-#             "INSERT INTO user_devices (user_id, device_topic) VALUES (%s, %s)",
-#             (user_id, data["device_topic"])
-#         )
-#         db.commit()
-#     except Exception as e:
-#         db.rollback()
-#         raise HTTPException(status_code=500, detail="Database error")
-#     finally:
-#         db.close()
-
-#     return {"message": "Item created successfully"}
-
-# @app.put("/profile/{device_id}")
-# async def update_item(request: Request, device_id: int, data: dict = Body(...)):
-#     session_result = await validate_session(request)
-#     if isinstance(session_result, RedirectResponse):
-#         return session_result
-#     user_id = session_result['user_id']
-
-#     cursor, db = connectdb()
-#     cursor.execute("SELECT * FROM user_devices WHERE id = %s AND user_id = %s", (device_id, user_id))
-#     item = cursor.fetchone()
-
-#     if not item:
-#         db.close()
-#         raise HTTPException(status_code=404, detail="Item not found")
-
-#     try:
-#         cursor.execute("UPDATE user_devices SET device_topic = %s WHERE id = %s", (data["device_topic"], device_id))
-#         db.commit()
-#     except Exception as e:
-#         db.rollback()
-#         raise HTTPException(status_code=500, detail="Database error")
-#     finally:
-#         db.close()
-
-#     return {"message": "Device updated successfully"}
-
-
-# @app.delete("/profile/{device_id}")
-# async def delete_item(request: Request, device_id: int):
-#     session_result = await validate_session(request)
-#     if isinstance(session_result, RedirectResponse):
-#         return session_result
-#     user_id = session_result['user_id']
-
-#     cursor, db = connectdb()
-#     cursor.execute("SELECT device_topic FROM user_devices WHERE id = %s AND user_id = %s", (device_id, user_id))
-#     item = cursor.fetchone()
-
-
-#     if not item:
-#         db.close()
-#         raise HTTPException(status_code=404, detail="Item not found")
-
-#     my_topic = item["device_topic"]
-
-#     try:
-#         cursor.execute("DELETE FROM user_devices WHERE id = %s", (device_id,))
-#         db.commit()
-#     except Exception as e:
-#         db.rollback()
-#         raise HTTPException(status_code=500, detail="Database error")
-        
-#     cursor.execute("SELECT * FROM sensor_temp WHERE topic = %s", (my_topic,))
-#     item2 = cursor.fetchall()
-
-#     if not item2:
-#         db.close()
-#         raise HTTPException(status_code=404, detail="Item not found")
-
-#     try:
-#         cursor.execute("DELETE FROM sensor_temp WHERE topic = %s", (my_topic,))
-#         db.commit()
-#     except Exception as e:
-#         db.rollback()
-#         raise HTTPException(status_code=500, detail="Database error")
-#     finally:
-#         db.close()
-
-#     return {"message": "Device deleted successfully"}
-
-
-
-#logout route
-@app.post("/logout")
-async def logout(request: Request):
-    """Clear session and redirect to login page"""
-    #Create redirect response to /login
-    sessionId = request.cookies.get('session_id')
-    response = RedirectResponse(url="/login")
-
-    #Delete sessionId cookie, and delete sessionId from database
-    if sessionId:
-        await delete_session(sessionId)
-    response.delete_cookie("sessionId")
-
-    #Return response
-    return response
-
-
-# Dashboard route
-# @app.get("/dashboard", response_class=HTMLResponse, include_in_schema=False)
-# async def get_dashboard(request : Request) -> HTMLResponse:
-#     session_result = await validate_session(request)
-#     if isinstance(session_result, RedirectResponse):
-#         return session_result
-#     with open("app/public/dashboard.html") as html:
-#         return HTMLResponse(content=html.read())
-
-# #get location from user database
-# @app.get("/dashboard/location")
-# async def get_user_location(request: Request):
-#     session_result = await validate_session(request)
-#     if isinstance(session_result, RedirectResponse):
-#         return session_result
-#     user_id = session_result['user_id']
-
-#     try:
-#         #query the database to get the user's location
-#         cursor, db = connectdb()
-#         cursor.execute("SELECT location FROM users WHERE id = %s", (user_id,))
-#         result = cursor.fetchall()
-#         db.close()
-
-#         if not result:
-#             raise HTTPException(status_code=404, detail="Location not found")
-
-#         location = result[0]['location']
-    
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-
-#     #return location of user to use for weatherapi
-#     return {"location": location}
-
-
-
-# @app.get("/wardrobe/items", response_class=JSONResponse)
-# async def get_wardrobe_items(request: Request):
-#     session_result = await validate_session(request)
-#     if isinstance(session_result, RedirectResponse):
-#         return session_result
-#     user_id = session_result['user_id']
-#     cursor, db = connectdb()
-#     cursor.execute("SELECT id, clothes FROM wardrobe WHERE user_id = %s", (user_id,))
-#     items = cursor.fetchall()
-#     db.close()
-
-#     return {"items": items}
-
-
-# @app.get("/wardrobe", response_class=HTMLResponse)
-# async def get_wardrobe(request: Request) -> HTMLResponse:
-#     session_result = await validate_session(request)
-#     if isinstance(session_result, RedirectResponse):
-#         return session_result
-#     with open("app/public/wardrobe.html") as html:
-#         return HTMLResponse(content=html.read())
-    
-
-# @app.post("/wardrobe")
-# async def create_item(request: Request, data: dict = Body(...)):
-#     session_result = await validate_session(request)
-#     if isinstance(session_result, RedirectResponse):
-#         return session_result
-#     user_id = session_result['user_id']
-
-#     cursor, db = connectdb()
-
-#     try:
-#         cursor.execute(
-#             "INSERT INTO wardrobe (user_id, clothes) VALUES (%s, %s)",
-#             (user_id, data["clothes"])
-#         )
-#         db.commit()
-#     except Exception as e:
-#         db.rollback()
-#         raise HTTPException(status_code=500, detail="Database error")
-#     finally:
-#         db.close()
-
-#     return {"message": "Item created successfully"}
-
-
-# @app.put("/wardrobe/{item_id}")
-# async def update_item(request: Request, item_id: int, data: dict = Body(...)):
-#     session_result = await validate_session(request)
-#     if isinstance(session_result, RedirectResponse):
-#         return session_result
-#     user_id = session_result['user_id']
-
-#     cursor, db = connectdb()
-#     cursor.execute("SELECT * FROM wardrobe WHERE id = %s AND user_id = %s", (item_id, user_id))
-#     item = cursor.fetchone()
-
-#     if not item:
-#         db.close()
-#         raise HTTPException(status_code=404, detail="Item not found")
-
-#     try:
-#         cursor.execute("UPDATE wardrobe SET clothes = %s WHERE id = %s", (data["clothes"], item_id))
-#         db.commit()
-#     except Exception as e:
-#         db.rollback()
-#         raise HTTPException(status_code=500, detail="Database error")
-#     finally:
-#         db.close()
-
-#     return {"message": "Item updated successfully"}
-
-
-# @app.delete("/wardrobe/{item_id}")
-# async def delete_item(request: Request, item_id: int):
-#     session_result = await validate_session(request)
-#     if isinstance(session_result, RedirectResponse):
-#         return session_result
-#     user_id = session_result['user_id']
-
-#     cursor, db = connectdb()
-#     cursor.execute("SELECT * FROM wardrobe WHERE id = %s AND user_id = %s", (item_id, user_id))
-#     item = cursor.fetchone()
-
-#     if not item:
-#         db.close()
-#         raise HTTPException(status_code=404, detail="Item not found")
-
-#     try:
-#         cursor.execute("DELETE FROM wardrobe WHERE id = %s", (item_id,))
-#         db.commit()
-#     except Exception as e:
-#         db.rollback()
-#         raise HTTPException(status_code=500, detail="Database error")
-#     finally:
-#         db.close()
-
-#     return {"message": "Item deleted successfully"}
-
-
-
-
-
-# @app.get("/api/{sensor_type}", response_class=JSONResponse)
-# def get_sensor_type(sensor_type:str, 
-#                     order_by:str=Query(None, alias="order-by"), 
-#                     start_date:str=Query(None, alias="start-date"), 
-#                     end_date:str=Query(None, alias="end-date")) -> JSONResponse:
-    
-#     valid_tables = {"humidity", "light", "temperature"}
-#     if sensor_type not in valid_tables:
-#         raise HTTPException(status_code=404, detail="Sensor type not found")
-
-#     cursor, db = connectdb()
-
-#     query = f"SELECT * FROM {sensor_type}"
-
-#     if start_date and end_date:
-#         query += f" WHERE timestamp >= '{start_date}' AND timestamp <= '{end_date}'"
-#     elif end_date:
-#         query += f" WHERE timestamp <= '{end_date}'"
-#     elif start_date:
-#         query += f" WHERE timestamp >= '{start_date}'"
-
-#     if order_by:
-#         if order_by in {"timestamp", "value"}:
-#             query += f" ORDER BY {order_by}"
-#         else:
-#             raise HTTPException(status_code=404, detail="Invalid order")
-
-#     #print("DEBUG: ****************************", query)
-#     cursor.execute(query)
-#     results = cursor.fetchall()
-#     for result in results:
-#         result['timestamp'] = result['timestamp'].strftime("%Y-%m-%d %H:%M:%S")
-#     db.close()
-
-#     if not results:
-#         raise HTTPException(status_code=404, detail="No data found")
-
-#     return JSONResponse(content=results)
-    
-
-# @app.get("/api/{sensor_type}/count")
-# def get_count(sensor_type:str) -> int:
-#     valid_tables = {"humidity", "light", "temperature"}
-#     if sensor_type not in valid_tables:
-#         raise HTTPException(status_code=404, detail="Sensor type not found")
-#     cursor, db = connectdb()
-#     cursori = db.cursor()
-#     cursori.execute(f"select count(*) from {sensor_type}")
-#     count = cursori.fetchone()[0]
-#     db.close()
-#     return count
-
-# @app.post("/sensor_data")
-# async def update_temps(request: SensorValues) -> dict:
-#     cursor, db = connectdb()
-#     cursor2 = db.cursor()
-#     topic = request.topic
-#     topic = topic.split('/')[0]
-#     #print(topic)
-#     temp = request.temp
-#     time = request.timestamp
-
-#     #print(temp)
-#     #print(time)
-#     try:
-#         cursor2.execute("SELECT * FROM user_devices WHERE device_topic = %s", (topic,))
-#         user = cursor2.fetchone()
-
-#         #print(user)
-#         if user:
-#             cursor2.execute("""
-#             insert into sensor_temp (user_id, topic, temperature, timestamp) 
-#             values (%s, %s, %s, %s)
-#             """, (user[1], topic, temp, time))
-
-
-#             db.commit()
-#             id = cursor2.lastrowid
-#             db.close()
-#             return {"id": id}
-#     except:
-#         db.close()
-#         return {"id" : -1}
-#     finally:
-#         db.close()
-#         return {"id" : -1}
-
-
-    
-
-# @app.post("/api/{sensor_type}")
-# def post_sensor_type(sensor_type:str, request:SensorType) -> dict:
-#     valid_tables = {"humidity", "light", "temperature"}
-#     if sensor_type not in valid_tables:
-#         raise HTTPException(status_code=404, detail="Sensor type not found")
-#     cursor, db = connectdb()
-#     cursor2 = db.cursor()
-
-#     timestamp = request.timestamp if request.timestamp else datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-#     value = request.value
-#     unit = request.unit
-#     cursor2.execute(f"""insert into {sensor_type} (timestamp, value, unit) 
-#                     values (%s, %s, %s)""", (timestamp, value, unit))
-#     db.commit()
-#     id = cursor2.lastrowid
-#     db.close()
-#     return {'id':id}
-
-
-
-# @app.get("/api/{sensor_type}/{id}")
-# def get_id_data(sensor_type:str, id:int) -> dict:
-#     valid_tables = {"humidity", "light", "temperature"}
-#     if sensor_type not in valid_tables:
-#         raise HTTPException(status_code=404, detail="Sensor type not found")
-#     cursor, db = connectdb()
-#     if id == None:
-#         cursor.execute(f"select * from {sensor_type};")
-#         result = cursor.fetchall()
-#     else:
-#         cursor.execute(f"select * from {sensor_type} where id={id};")
-#         result = cursor.fetchone()
-#         if (not result):
-#             db.close()
-#             raise HTTPException(status_code=404, detail="ID not found")
-#     db.close()
-#     return result
-
-
-# @app.put("/api/{sensor_type}/{id}")
-# async def update_data(sensor_type:str, id:int, request:SensorType) -> dict:
-#     valid_tables = {"humidity", "light", "temperature"}
-#     if sensor_type not in valid_tables:
-#         raise HTTPException(status_code=404, detail="Sensor type not found")
-#     cursor, db = connectdb()
-#     cursor2 = db.cursor()
-
-#     queryList = []
-#     params = []
-    
-#     if request.value is not None:
-#         queryList.append("value = %s")
-#         params.append(request.value)
-#     if request.unit is not None:
-#         queryList.append("unit = %s")
-#         params.append(request.unit)
-#     if request.timestamp is not None:
-#         queryList.append("timestamp = %s")
-#         params.append(request.timestamp)
-#     if not queryList:
-#         raise HTTPException(status_code=404, detail="No Valid Input")
-
-#     params.append(id)
-#     query = f"update {sensor_type} set {', '.join(queryList)} where id = %s"
-#     cursor2.execute(query, params)
-#     db.commit()
-#     db.close()
-
-#     return {"message": "Database updated successfully"}
-
-# @app.delete("/api/{sensor_type}/{id}")
-# def delete_data(sensor_type:str, id:int) -> dict:
-#     valid_tables = {"humidity", "light", "temperature"}
-#     if sensor_type not in valid_tables:
-#         raise HTTPException(status_code=404, detail="Sensor type not found")
-#     cursor, db = connectdb()
-#     cursor2 = db.cursor()
-#     cursor2.execute(f"delete from {sensor_type} where id={id}")
-#     db.commit()
-#     db.close()
-#     return {"message": "Data row deleted successfully"}
-
-
-# EMAIL = os.getenv("EMAIL")
-# PID = os.getenv("PID")
-
-# class weatherClass(BaseModel):
-#     temp: str
-#     cond: str
-
-# @app.post("/get_suggestion")
-# async def get_recommended(data : weatherClass, request: Request):
-#     session_result = await validate_session(request)
-#     if isinstance(session_result, RedirectResponse):
-#         return session_result
-#     user_id = session_result['user_id']
-#     cursor, db = connectdb()
-#     cursor.execute("SELECT id, clothes FROM wardrobe WHERE user_id = %s", (user_id,))
-#     items = cursor.fetchall()
-#     db.close()
-
-
-
-#     email = EMAIL
-#     pid = PID
-
-#     url = "https://ece140-wi25-api.frosty-sky-f43d.workers.dev/api/v1/ai/complete"
-    
-    
-#     prompt = f"The temperature is {data.temp} with the weather being {data.cond}. My wardrobe has {items}, what do you suggest I wear? Can you respond only with the item name and not its id?"
-#     ai_request_data = {
-#         "prompt": prompt
-#     }
-    
-#     headers = {
-#         "email": email,
-#         "pid": pid,
-#         "Content-Type": "application/json"
-#     }
-
-
-#     try:
-#         response = requests.post(url, json=ai_request_data, headers=headers)
-        
-#         if response.status_code == 200:
-#             return response.json()  
-#         else:
-#             raise HTTPException(status_code=response.status_code, detail="Error from AI service")
-    
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Error making request to AI service: {e}")
 
 
 

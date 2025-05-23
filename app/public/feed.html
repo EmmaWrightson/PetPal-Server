@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PetPal Feed Page</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; margin: 0; padding: 0; }
+        .nav { margin-top: 10px; }
+        .nav button { margin: 5px; padding: 10px; font-size: 16px; }
+        .video-feed, .controls { margin: 20px auto; max-width: 600px; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <button onclick="location.href='/login'">Home</button>
+        <button onclick="location.href='/dispense'">Dispense</button>
+    </div>
+
+    <div id="content"></div>
+
+    <script>
+        const path = window.location.pathname;
+
+        if (path === '/feed') {
+            document.title = 'PetPal Feed';
+            document.getElementById('content').innerHTML = `
+                <div class="video-feed">
+                    <h2>Live Feed</h2>
+                    <img id="video" src="/video_feed" width="600" />
+                </div>
+                <div class="controls">
+                    <button id="record">🎤 Hold to Speak</button>
+                </div>
+            `;
+
+            let mediaRecorder;
+            let audioChunks = [];
+            const recordBtn = document.getElementById("record");
+
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                mediaRecorder = new MediaRecorder(stream);
+
+                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks);
+                    audioChunks = [];
+
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        fetch('/say', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ audio_base64: reader.result.split(',')[1] })
+                        });
+                    };
+                    reader.readAsDataURL(audioBlob);
+                };
+                
+                recordBtn.onmousedown = () => mediaRecorder.start();
+                recordBtn.onmouseup = () => mediaRecorder.stop();
+            });
+        } else if (path === '/dispense') {
+            document.title = 'Dispense Treats';
+            document.getElementById('content').innerHTML = `
+                <h2>Dispense Treats Page</h2>
+                <p>Use the physical buttons on your device to dispense treats.</p>
+            `;
+        }
+    </script>
+</body>
+</html>
