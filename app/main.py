@@ -436,7 +436,21 @@ async def get_html(request:Request) -> HTMLResponse:
     with open("app/public/profile_devices.html") as html:
         return HTMLResponse(content=html.read())
 
+#logout route
 
+
+@app.post("/logout")
+async def logout(request: Request):
+    """Clear session and redirect to login page"""
+    #Create redirect response to /login
+    sessionId = request.cookies.get('session_id')
+    response = RedirectResponse(url="/login")
+    #Delete sessionId cookie, and delete sessionId from database
+    if sessionId:
+        await delete_session(sessionId)
+    response.delete_cookie("sessionId")
+    #Return response
+    return response
 
 
 getTables()
