@@ -52,12 +52,12 @@
   <circle cx="150" cy="150" r="140" fill="#222" />
   <circle cx="150" cy="150" r="5" fill="#333" />
 
-  <path class="wedge" data-motor="3" d="M150 150 L270 150 L210 253 Z" />
-  <path class="wedge" data-motor="4" d="M150 150 L210 253 L90 253 Z" />
-  <path class="wedge" data-motor="5" d="M150 150 L90 253 L30 150 Z" />
-  <path class="wedge" data-motor="0" d="M150 150 L30 150 L90 47 Z" />
-  <path class="wedge" data-motor="1" d="M150 150 L90 47 L210 47 Z" />
-  <path class="wedge" data-motor="2" d="M150 150 L210 47 L270 150 Z" />
+  <path class="wedge" data-motor="4" d="M150 150 L270 150 L210 253 Z" />
+  <path class="wedge" data-motor="5" d="M150 150 L210 253 L90 253 Z" />
+  <path class="wedge" data-motor="6" d="M150 150 L90 253 L30 150 Z" />
+  <path class="wedge" data-motor="1" d="M150 150 L30 150 L90 47 Z" />
+  <path class="wedge" data-motor="2" d="M150 150 L90 47 L210 47 Z" />
+  <path class="wedge" data-motor="3" d="M150 150 L210 47 L270 150 Z" />
 
   <text x="210" y="180" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">Motor 4</text>
   <text x="150" y="220" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">Motor 5</text>
@@ -89,11 +89,11 @@
     fetch('/api/motor', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ motor: selectedMotor })
+      body: JSON.stringify({ motor: (selectedMotor - 1) })
     })
     .then(response => response.json())
     .then(data => {
-      alert(data.message);
+      alert("Dispenser " + selectedMotor + " chosen");
       window.location.href = "/feed";
     })
     .catch(err => alert("Error sending command: " + err));
