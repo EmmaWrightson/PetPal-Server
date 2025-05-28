@@ -226,7 +226,7 @@ async def live_ws(websocket: WebSocket):
     await websocket.accept()
     try:
         while True:
-            msg = await websocket.recieve_text()
+            msg = await websocket.receive_text()
             data = json.loads(msg)
 
             if data["type"] == "video":
