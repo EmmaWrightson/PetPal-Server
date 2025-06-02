@@ -19,40 +19,40 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def connectdb():
-
-    # Read Database connection variables
-
-    db_host = os.environ['MYSQL_HOST']
-    db_user = os.environ['MYSQL_USER']
-    db_pass = os.environ['MYSQL_PASSWORD']
-    db_name = os.environ['MYSQL_DATABASE']
-    db = mysql.connect(user=db_user, password=db_pass, host=db_host, database=db_name,port = int(os.getenv('MYSQL_PORT', 3306)))
-    cursor = db.cursor(dictionary=True)
-    return cursor, db
-
-
-
 # def connectdb():
+
 #     # Read Database connection variables
+
 #     db_host = os.environ['MYSQL_HOST']
 #     db_user = os.environ['MYSQL_USER']
 #     db_pass = os.environ['MYSQL_PASSWORD']
 #     db_name = os.environ['MYSQL_DATABASE']
-#     ssl_ca  = os.getenv('MYSQL_SSL_CA')  # Path to CA certificate file
-    
-
-#     db = mysql.connect(user=db_user, 
-#                        port=int(os.getenv('MYSQL_PORT')),
-#                        password=db_pass, 
-#                        host=db_host, 
-#                        database=db_name,
-#                        ssl_ca=ssl_ca,
-#                        ssl_verify_identity=True
-#                        )
-
+#     db = mysql.connect(user=db_user, password=db_pass, host=db_host, database=db_name,port = int(os.getenv('MYSQL_PORT', 3306)))
 #     cursor = db.cursor(dictionary=True)
 #     return cursor, db
+
+
+
+def connectdb():
+    # Read Database connection variables
+    db_host = os.environ['MYSQL_HOST']
+    db_user = os.environ['MYSQL_USER']
+    db_pass = os.environ['MYSQL_PASSWORD']
+    db_name = os.environ['MYSQL_DATABASE']
+    ssl_ca  = os.getenv('MYSQL_SSL_CA')  # Path to CA certificate file
+    
+
+    db = mysql.connect(user=db_user, 
+                       port=int(os.getenv('MYSQL_PORT')),
+                       password=db_pass, 
+                       host=db_host, 
+                       database=db_name,
+                       ssl_ca=ssl_ca,
+                       ssl_verify_identity=True
+                       )
+
+    cursor = db.cursor(dictionary=True)
+    return cursor, db
 
 
 def getTables():
