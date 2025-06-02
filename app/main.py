@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Form, Query,status, HTTPException, Body, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, Form, Query,status, HTTPException, Body, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.responses import Response, RedirectResponse
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles   # Used for serving static files
@@ -26,6 +26,7 @@ load_dotenv()
 SYSTEM_SALT = b"my-fixed-salt-12345"
 motor_queue = []
 audio_out_queue = []
+cam_queue = []
 
 
 #change number value for different time-out time in minutes
@@ -205,9 +206,14 @@ async def send_motor_command(cmd: MotorCommand):
     motor_queue.append(cmd.motor)
     return {"message": f"Motor {cmd.motor} command received"}
 
+
 @app.post("/api/sound")
-async def send_audio_command(audio_base64: str):
-    audio_out_queue.append(audio_base64)
+async def send_audio_command(request: Request, file: UploadFile = File(...)):
+    form = await request.form()
+    print("❗ request.form() =", form)  
+    # This should print something like: {'file': <UploadFile chunk.webm ...>}
+    contents = await file.read()
+    audio_out_queue.append(contents)
     return {"status": "queued"}
 
 
@@ -226,19 +232,8 @@ async def live_ws(websocket: WebSocket):
     await websocket.accept()
     try:
         while True:
-            msg = await websocket.receive_text()
-            data = json.loads(msg)
-
-            if data["type"] == "video":
-                video_data = base64.b64decode(data["data"])
-                with open("frame.jpg", "wb") as f:
-                    f.write(video_data)
-
-            elif data["type"] == "audio":
-                audio_data = base64.b64decode(data["data"])
-                with open("audio_chunk.wav", "wb") as f:
-                    f.write(audio_data)
-
+            
+            # Send motor command if available
             if motor_queue:
                 motor = motor_queue.pop(0)
                 await websocket.send_json({
@@ -246,18 +241,27 @@ async def live_ws(websocket: WebSocket):
                     "motor": motor
                 })
 
-            if audio_out_queue:
-                audio_data = audio_out_queue.pop(0)
+            if cam_queue:
+                direction = cam_queue.pop(0)
                 await websocket.send_json({
-                    "type": "audio_out",
-                    "data": audio_data
+                    "type": "cam",
+                    "direction": direction
                 })
 
+            if audio_out_queue:
+                audio_binary = audio_out_queue.pop(0)
+                audio_b64 = base64.b64encode(audio_binary).decode("utf-8")
+                await websocket.send_json({
+                    "type": "audio",
+                    "data": audio_b64
+                })
 
             await asyncio.sleep(0.01)
 
     except WebSocketDisconnect:
         print("Client disconnected")
+
+
 
 
 @app.get("/feed", response_class=HTMLResponse)
@@ -451,6 +455,15 @@ async def logout(request: Request):
     response.delete_cookie("sessionId")
     #Return response
     return response
+
+
+@app.post("/movecam")
+async def move_cam(request: Request):
+    data = await request.json()
+    direction = data.get("direction")
+    cam_queue.append(direction)
+    print(f"Move camera: {direction}")
+    return {"status": "ok", "direction": direction}
 
 
 getTables()

@@ -1,10 +1,40 @@
 <!DOCTYPE html>
 <html>
+  <style>
+     #topBar {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      text-align: right;
+    }
+
+    #pages button {
+      font-size: 16px;
+      padding: 10px 20px;
+      margin-left: 10px;
+      border: none;
+      border-radius: 20px;
+      background-color: #3399ff;
+      color: white;
+      cursor: pointer;
+    }
+
+    #pages button:hover {
+      background-color: #1a8cff;
+    }
+  </style>
   <head>
     <title>Profile</title>
     <link rel="stylesheet" href="/public/css/style.css">
   </head>
   <body>
+
+    <div id="topBar">
+      <div id="pages">
+        <button onclick="location.href='/feed'">Camera Live Stream</button>
+      </div>
+    </div>
+
     <div class="header">
       <h1 id="welcome-message">Welcome!</h1>
       <form class="logout-form" action="/logout" method="POST">
