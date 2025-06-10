@@ -197,7 +197,8 @@
   <button id="recordBtn">🎙️ Hold to Talk</button>
 
   <script>
-    let ip = "192.168.86.149";
+    // let ip = "100.80.243.29";
+    let ip = "10.10.1.151"
     let videoWs = null;
     let audioWs = null;
     let audioContext = null;
@@ -308,7 +309,7 @@
     document.querySelectorAll('.dirBtn').forEach(button => {
     button.addEventListener('click', () => {
       const direction = button.getAttribute('data-dir');
-      fetch('/movecam', {
+      fetch('https://petpal-3yfg.onrender.com/movecam', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -362,7 +363,7 @@ async function sendAudioBlob(blob) {
     const formData = new FormData();
     formData.append('file', blob, 'chunk.webm');
 
-    const response = await fetch('/api/sound', {
+    const response = await fetch('https://petpal-3yfg.onrender.com/api/sound', {
       method: 'POST',
       body: formData,
     });

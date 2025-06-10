@@ -59,12 +59,12 @@
   <path class="wedge" data-motor="2" d="M150 150 L90 47 L210 47 Z" />
   <path class="wedge" data-motor="3" d="M150 150 L210 47 L270 150 Z" />
 
-  <text x="210" y="180" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">Motor 4</text>
-  <text x="150" y="220" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">Motor 5</text>
-  <text x="80" y="180" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">Motor 6</text>
-  <text x="80" y="130" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">Motor 1</text>
-  <text x="150" y="80" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">Motor 2</text>
-  <text x="200" y="130" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">Motor 3</text>
+  <text x="210" y="180" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">Bucket 4</text>
+  <text x="150" y="220" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">Bucket 5</text>
+  <text x="80" y="180" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">Bucket 6</text>
+  <text x="80" y="130" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">Bucket 1</text>
+  <text x="150" y="80" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">Bucket 2</text>
+  <text x="200" y="130" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">Bucket 3</text>
 </svg>
 
 <button class="dispense" onclick="sendCommand()">Dispense</button>
@@ -86,7 +86,7 @@
       return;
     }
 
-    fetch('/api/motor', {
+    fetch('https://petpal-3yfg.onrender.com/api/motor', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ motor: (selectedMotor - 1) })

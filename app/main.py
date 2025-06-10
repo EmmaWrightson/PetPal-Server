@@ -143,41 +143,6 @@ async def cleanup_expired_sessions():
 async def startup_event():
     asyncio.create_task(cleanup_expired_sessions())
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    cookies = websocket.cookies
-    sessionid = cookies.get("session_id")
-    if sessionid:
-        session = await get_session(sessionid) #get session from sessionID
-        if session:
-            user_id = session['user_id']
-            if user_id:
-                try:
-                    while True:
-                        cursor, db = connectdb()
-                        cursor2 = db.cursor()
-                        cursor2.execute("SELECT topic, temperature, timestamp FROM sensor_temp WHERE user_id = %s", (user_id,))
-                        result = cursor2.fetchall()
-                        data = []
-                        for row in result:
-                            data.append({
-                            "topic": row[0],
-                            "temperature": row[1],
-                            "timestamp": row[2].strftime('%Y-%m-%d %H:%M:%S')  # Format timestamp if needed
-                            })
-                        await websocket.send_json(data)
-                        await asyncio.sleep(5)
-                except Exception as e:
-                    print(f"Something went wrong: {e}")
-                finally:
-                    cursor.close()
-                    await websocket.close()
-            
-    else:
-        await websocket.send_text("Error: user_id cookie not found")
-        await websocket.close()
-        return
 
 
 # Static file helpers
