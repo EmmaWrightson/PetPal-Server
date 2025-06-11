@@ -58,7 +58,6 @@ class MotorCommand(BaseModel):
     motor: int
 
 from app.database import (
-    getTables,
     connectdb,
     setup_database,
     get_user_by_email,
@@ -176,7 +175,7 @@ async def send_motor_command(cmd: MotorCommand):
 async def send_audio_command(request: Request, file: UploadFile = File(...)):
     form = await request.form()
     print("❗ request.form() =", form)  
-    # This should print something like: {'file': <UploadFile chunk.webm ...>}
+    # This should print something like: {'file': <UploadFile chunk.webm ...>} so make sure output is correct if no audio plays
     contents = await file.read()
     audio_out_queue.append(contents)
     return {"status": "queued"}
@@ -198,7 +197,7 @@ async def live_ws(websocket: WebSocket):
     try:
         while True:
             
-            # Send motor command if available
+    
             if motor_queue:
                 motor = motor_queue.pop(0)
                 await websocket.send_json({
@@ -430,8 +429,6 @@ async def move_cam(request: Request):
     print(f"Move camera: {direction}")
     return {"status": "ok", "direction": direction}
 
-
-getTables()
 
 
 

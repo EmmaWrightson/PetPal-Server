@@ -197,8 +197,7 @@
   <button id="recordBtn">🎙️ Hold to Talk</button>
 
   <script>
-    // let ip = "100.80.243.29";
-    let ip = "192.168.86.149"
+    let ip = "100.84.0.245";
     let videoWs = null;
     let audioWs = null;
     let audioContext = null;
@@ -336,12 +335,11 @@ async function startRecording() {
 
   mediaRecorder.ondataavailable = async (event) => {
     if (event.data && event.data.size > 0) {
-      // This fires only when you call mediaRecorder.stop()
       await sendAudioBlob(event.data);
     }
   };
 
-  mediaRecorder.start();  // ← no “1000” here
+  mediaRecorder.start(); 
 }
 
 async function stopRecording() {
@@ -357,7 +355,7 @@ async function stopRecording() {
   }
 }
 
-// Function to send a blob to your server
+
 async function sendAudioBlob(blob) {
   try {
     const formData = new FormData();
@@ -390,7 +388,7 @@ recordBtn.addEventListener('mouseup', () => {
 
 // For mobile/touch devices:
 recordBtn.addEventListener('touchstart', (e) => {
-  e.preventDefault(); // Prevents mouse event also firing on some devices
+  e.preventDefault(); 
   startRecording();
 });
 

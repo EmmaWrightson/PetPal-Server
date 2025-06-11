@@ -28,7 +28,7 @@ var (
 	streamMutex sync.Mutex
 )
 
-// HTML page with video player and controls
+// HTML page with video player and controls when you open at your IP adress then at the port 8080
 const htmlPage = `
 <!DOCTYPE html>
 <html>
@@ -315,7 +315,7 @@ func handleAudioWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Audio client connected. Total clients: %d", len(audioClients))
 
-	// Keep connection alive
+	// Keep connection alive for audio too
 	for {
 	if _, _, err := conn.ReadMessage(); err != nil {
 	break
@@ -364,8 +364,7 @@ func handleStop(w http.ResponseWriter, r *http.Request) {
 func captureVideo() {
 	log.Println("Starting video capture...")
 
-	// Using libcamera-vid to capture MJPEG stream
-	// Adjust parameters as needed for your camera
+	// Using libcamera-vid to capture MJPEG stream of photos
 	cmd := exec.Command("libcamera-vid",
 	"-t", "0", // Run indefinitely
 	"--codec", "mjpeg", // MJPEG codec
@@ -388,7 +387,7 @@ func captureVideo() {
 	return
 	}
 
-	// Log stderr in a separate goroutine
+	// Log stderr in a separate go routine
 	go func() {
 	buf := make([]byte, 1024)
 	for {
@@ -411,7 +410,7 @@ func captureVideo() {
 	log.Println("Video capture stopped")
 	}()
 
-	// Read MJPEG frames
+	// Read the MJPEG frames
 	buffer := make([]byte, 1024*1024) // 1MB buffer for frames
 	frameBuffer := bytes.NewBuffer(nil)
 
@@ -430,20 +429,18 @@ func captureVideo() {
 	if startIdx >= 0 {
 	endIdx := bytes.Index(data[startIdx+2:], []byte{0xFF, 0xD9}) // JPEG end
 	if endIdx >= 0 {
-	endIdx += startIdx + 4 // Adjust for offset and include end marker
+	endIdx += startIdx + 4 // Adjust for offset and include the end marker
 
 	// Extract complete JPEG frame
 	frame := data[startIdx:endIdx]
 
-	// Send to all connected clients
 	broadcastVideo(frame)
 
-	// Remove processed data from buffer
 	frameBuffer.Next(endIdx)
 	}
 	}
 
-	// Prevent buffer from growing too large
+	// If buffer gets too big, reset it.
 	if frameBuffer.Len() > 2*1024*1024 {
 	frameBuffer.Reset()
 	}
@@ -454,11 +451,10 @@ func captureAudio() {
 	log.Println("Starting audio capture...")
 
 	// Using arecord to capture audio
-	// Adjust device name as needed (use 'arecord -l' to list devices)
 	cmd := exec.Command("arecord",
 	"-f", "S16_LE", // 16-bit signed little-endian
 	"-r", "44100", // Sample rate
-	"-c", "1", // Mono
+	"-c", "1", // Mono sound
 	"-t", "raw", // Raw output
 	"-D", "plughw:3,0", // USB microphone (adjust as needed)
 	"-", // Output to stdout
@@ -476,7 +472,7 @@ func captureAudio() {
 	return
 	}
 
-	// Log stderr in a separate goroutine
+	// Log stderr in a separate go routine
 	go func() {
 	buf := make([]byte, 1024)
 	for {
@@ -519,7 +515,7 @@ func broadcastVideo(frame []byte) {
 	clientsMutex.Lock()
 	defer clientsMutex.Unlock()
 
-	// Encode frame as base64
+	// Encode frame in base64
 	encoded := base64.StdEncoding.EncodeToString(frame)
 
 	for client := range videoClients {

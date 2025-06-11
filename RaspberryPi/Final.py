@@ -10,7 +10,7 @@ import sounddevice as sd
 import numpy as np
 from adafruit_servokit import ServoKit
 
-#
+
 import smbus2
 import time
 
@@ -22,13 +22,13 @@ MODE1 = 0x00
 PRESCALE = 0xFE
 LED0_ON_L = 0x06
 
-# Initialize
-bus = smbus2.SMBus(3)  # i2c-3
+# Initialize the data bus which is in the raspberry pi's i2c-3
+bus = smbus2.SMBus(3)  
 
-# Wake up PCA9685
-bus.write_byte_data(PCA9685_ADDR, MODE1, 0x00)  # Normal mode
+# Set up PCA9685 into normal mode
+bus.write_byte_data(PCA9685_ADDR, MODE1, 0x00)  
 
-# Set frequency to 50Hz for servos
+# Set frequency to 50Hz for servos, and send byte data to the bus to prepare for servos
 freq = 50
 prescale_val = int(25000000.0 / (4096 * freq) - 1)
 old_mode = bus.read_byte_data(PCA9685_ADDR, MODE1)
@@ -39,7 +39,7 @@ bus.write_byte_data(PCA9685_ADDR, MODE1, old_mode)
 time.sleep(0.005)
 bus.write_byte_data(PCA9685_ADDR, MODE1, old_mode | 0xA1)
 
-# Set servo position on channel 0
+# Set servo positions
 def set_pwm(channel, on, off):
     reg = LED0_ON_L + 4 * channel
     bus.write_byte_data(PCA9685_ADDR, reg, on & 0xFF)
@@ -55,13 +55,14 @@ def smooth_set_pwm(channel, start, end, step=1, delay=0.005):
     for pos in range(start, end, direction * step):
         set_pwm(channel, 0, pos)
         time.sleep(delay)
-    set_pwm(channel, 0, end)  # Ensure final position is accurate
+    set_pwm(channel, 0, end)
 
-updown = 300
+#On startup these are the motor's middle position to be set when started
+updown = 300 
 leftright = 300
 
-set_pwm(0, 0, leftright)   # ~1.5ms pulse (center)
-set_pwm(1, 0, updown)   # ~1.5ms pulse (center)
+set_pwm(0, 0, leftright)   
+set_pwm(1, 0, updown)   
 
 def move_cam(direction):
     global leftright, updown
@@ -91,9 +92,8 @@ kit = ServoKit(channels=16)
 for i in range(6):
     kit.servo[i].set_pulse_width_range(500,2500)
 
+#Move motor down then back up to release the treats
 def run_motor(motor_num):
-    # kit.servo[motor_num].angle = 90
-    # time.sleep(1)
     kit.servo[motor_num].angle = 0
     time.sleep(2)
     kit.servo[motor_num].angle = 90
@@ -101,8 +101,8 @@ def run_motor(motor_num):
 async def play_audio(data: bytes):
     process = subprocess.Popen([
         "ffmpeg", "-hide_banner", "-loglevel", "error",
-            "-i", "pipe:0",                # read from stdin
-            "-f", "wav", "pipe:1"          # output WAV to stdout
+            "-i", "pipe:0",                
+            "-f", "wav", "pipe:1"          
     ],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE)

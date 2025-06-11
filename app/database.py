@@ -55,75 +55,6 @@ def connectdb():
 #     return cursor, db
 
 
-def getTables():
-    cursor, db = connectdb()
-    
-    humid = pd.read_csv("./sample/humidity.csv")
-    light = pd.read_csv("./sample/light.csv")
-    temp = pd.read_csv("./sample/temperature.csv")
-
-
-    try:
-        cursor.execute("""
-                       CREATE TABLE  IF NOT EXISTS humidity(
-                       id          integer  AUTO_INCREMENT PRIMARY KEY,
-                       timestamp   DATETIME NOT NULL,
-                       value        FLOAT NOT NULL,
-                       unit         VARCHAR(50) NOT NULL
-            );
-            """)
-    except RuntimeError as err:
-        print("runtime error: {0}".format(err))
-
-    for index, row in humid.iterrows():
-        cursor.execute('''
-                       INSERT INTO humidity (timestamp, value, unit)
-                       VALUES (%s, %s, %s)
-                       ''', (row['timestamp'], row['value'], row['unit'] ))
-
-
-    try:
-        cursor.execute("""
-                       CREATE TABLE IF NOT EXISTS light(
-                       id          integer  AUTO_INCREMENT PRIMARY KEY,
-                       timestamp   DATETIME NOT NULL,
-                       value        FLOAT NOT NULL,
-                       unit         VARCHAR(50) NOT NULL
-            );
-            """)
-    except RuntimeError as err:
-        print("runtime error: {0}".format(err))
-
-    for index, row in light.iterrows():
-        cursor.execute('''
-                       INSERT INTO light (timestamp, value, unit)
-                       VALUES (%s, %s, %s)
-                       ''', (row['timestamp'], row['value'], row['unit'] ))
-        
-  
-    try:
-        cursor.execute("""
-                       CREATE TABLE IF NOT EXISTS temperature(
-                       id          integer  AUTO_INCREMENT PRIMARY KEY,
-                       timestamp   DATETIME NOT NULL,
-                       value        FLOAT NOT NULL,
-                       unit         VARCHAR(50) NOT NULL
-            );
-            """)
-    except RuntimeError as err:
-        print("runtime error: {0}".format(err))
-
-    for index, row in temp.iterrows():
-        cursor.execute('''
-                       INSERT INTO temperature (timestamp, value, unit)
-                       VALUES (%s, %s, %s)
-                       ''', (row['timestamp'], row['value'], row['unit'] ))
-
-    db.commit()
-    db.close()
-
-
-#started login/signup
 
 async def setup_database(initial_users: dict = None):
     """Creates user, session, and new device-related tables, and populates initial user data if provided."""
@@ -155,34 +86,6 @@ async def setup_database(initial_users: dict = None):
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id INT NOT NULL,
                 device_topic VARCHAR(255) NOT NULL UNIQUE,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            )
-        """,
-        "sensor_data": """
-            CREATE TABLE IF NOT EXISTS sensor_data (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                device_id INT NOT NULL,
-                temperature FLOAT,
-                pressure FLOAT,
-                timestamp DATETIME NOT NULL,
-                FOREIGN KEY (device_id) REFERENCES user_devices(id) ON DELETE CASCADE
-            )
-        """,
-         "wardrobe": """
-            CREATE TABLE IF NOT EXISTS wardrobe (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NOT NULL,
-                clothes VARCHAR(255) NOT NULL,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            )
-        """,
-        "sensor_temp": """
-            CREATE TABLE IF NOT EXISTS sensor_temp (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NOT NULL,
-                topic VARCHAR(255) NOT NULL,
-                temperature VARCHAR(255) NOT NULL,
-                timestamp DATETIME NOT NULL,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         """,
@@ -376,21 +279,3 @@ async def add_user_device(user_id: int, device_topic: str):
         if connection and connection.is_connected():
             connection.close()
 
-
-async def add_sensor_data(device_id: int, temperature: float, pressure: float, timestamp: datetime.datetime):
-    """Inserts sensor data into the sensor_data table."""
-    connection = None
-    cursor = None
-    try:
-        cursor, connection = connectdb()  # Unpack the returned tuple here
-        cursor.execute(
-            "INSERT INTO sensor_data (device_id, temperature, pressure, timestamp) VALUES (%s, %s, %s, %s)",
-            (device_id, temperature, pressure, timestamp)
-        )
-        connection.commit()
-        logger.info(f"Sensor data inserted for device {device_id} at {timestamp}")
-    finally:
-        if cursor:
-            cursor.close()
-        if connection and connection.is_connected():
-            connection.close()
